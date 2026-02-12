@@ -1,8 +1,8 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import axios from 'axios';
+import { TrackClient } from 'customerio-node';
 import { CDPClient } from './client';
 import { SendEmailRequest } from './types';
-import {jest, describe, expect, it, beforeEach} from '@jest/globals';
-import {TrackClient} from 'customerio-node';
 
 // Helper function to create SendEmailRequest instances
 function createEmailRequest(opts: any): SendEmailRequest {
@@ -48,7 +48,7 @@ describe('CDPClient', () => {
         jest.clearAllMocks();
         mockedAxios = axios as jest.Mocked<typeof axios>;
         mockedTrackClient = TrackClient as jest.Mock;
-        
+
         // Reset the mock axios instance
         mockAxiosInstance.get.mockClear();
         mockAxiosInstance.post.mockClear();
@@ -57,7 +57,7 @@ describe('CDPClient', () => {
     describe('identify', () => {
         it('should send identify data to OpenCDP and Customer.io when sendToCmIo is enabled', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -85,7 +85,7 @@ describe('CDPClient', () => {
 
         it('should raise validation error when id is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -104,7 +104,7 @@ describe('CDPClient', () => {
             mockedTrackClient.mockClear();
 
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 sendToCustomerIo: false,
                 customerIo: {
                     siteId: 'site-id',
@@ -132,7 +132,7 @@ describe('CDPClient', () => {
     describe('track', () => {
         it('should send track data to OpenCDP and Customer.io when sendToCmIo is enabled', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -159,7 +159,7 @@ describe('CDPClient', () => {
 
         it('should raise validation error when id is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -175,7 +175,7 @@ describe('CDPClient', () => {
 
         it('should raise validation error when event name is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -194,7 +194,7 @@ describe('CDPClient', () => {
     describe('registerDevice', () => {
         it('should send register device data to OpenCDP and CMIO when sendToCustomerIo is enabled', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -243,13 +243,13 @@ describe('CDPClient', () => {
     describe('sendEmail', () => {
         it('should send template-based email data to OpenCDP with basic parameters', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({ 
-                status: 200, 
-                data: { messageId: 'email-123', status: 'sent' } 
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'email-123', status: 'sent' }
             });
 
             const emailRequest = new SendEmailRequest({
@@ -277,13 +277,13 @@ describe('CDPClient', () => {
 
         it('should send template-based email data to OpenCDP with full parameters', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({ 
-                status: 200, 
-                data: { messageId: 'email-456', status: 'sent' } 
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'email-456', status: 'sent' }
             });
 
             const emailRequest = createEmailRequest({
@@ -329,13 +329,13 @@ describe('CDPClient', () => {
 
         it('should send raw email data to OpenCDP without template', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({ 
-                status: 200, 
-                data: { messageId: 'email-789', status: 'sent' } 
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'email-789', status: 'sent' }
             });
 
             const emailRequest = createEmailRequest({
@@ -369,7 +369,7 @@ describe('CDPClient', () => {
 
         it('should raise validation error when to email is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({ identifiers: { id: 'user-123' } } as any))).rejects.toThrow('to is required');
@@ -378,7 +378,7 @@ describe('CDPClient', () => {
 
         it('should raise validation error when identifiers is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             await expect(client.sendEmail(new SendEmailRequest({ to: 'test@example.com' } as any))).rejects.toThrow('identifiers is required');
@@ -387,11 +387,11 @@ describe('CDPClient', () => {
 
         it('should raise validation error when identifiers is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             await expect(client.sendEmail(new SendEmailRequest({
-                to: 'test@example.com', 
+                to: 'test@example.com',
                 identifiers: {} as any,
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('identifiers must contain exactly one of: id, email, or cdp_id');
@@ -400,11 +400,11 @@ describe('CDPClient', () => {
 
         it('should raise validation error when identifiers has multiple values', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
-                to: 'test@example.com', 
+                to: 'test@example.com',
                 identifiers: { id: 'user-123', email: 'test@example.com' } as any,
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('identifiers must contain exactly one of: id, email, or cdp_id');
@@ -413,11 +413,11 @@ describe('CDPClient', () => {
 
         it('should raise validation error when to email is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendEmail(createEmailRequest({ 
-                to: '', 
+            await expect(client.sendEmail(createEmailRequest({
+                to: '',
                 identifiers: { id: 'user-123' },
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('to is required');
@@ -426,11 +426,11 @@ describe('CDPClient', () => {
 
         it('should raise validation error when to email has invalid format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendEmail(createEmailRequest({ 
-                to: 'invalid-email', 
+            await expect(client.sendEmail(createEmailRequest({
+                to: 'invalid-email',
                 identifiers: { id: 'user-123' },
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('Invalid email address format');
@@ -439,12 +439,12 @@ describe('CDPClient', () => {
 
         it('should raise validation error when from email has invalid format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendEmail(createEmailRequest({ 
-                to: 'test@example.com', 
-                identifiers: { id: 'user-123' }, 
+            await expect(client.sendEmail(createEmailRequest({
+                to: 'test@example.com',
+                identifiers: { id: 'user-123' },
                 from: 'invalid-email',
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('Invalid email address format');
@@ -453,12 +453,12 @@ describe('CDPClient', () => {
 
         it('should raise validation error when bcc email has invalid format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendEmail(createEmailRequest({ 
-                to: 'test@example.com', 
-                identifiers: { id: 'user-123' }, 
+            await expect(client.sendEmail(createEmailRequest({
+                to: 'test@example.com',
+                identifiers: { id: 'user-123' },
                 bcc: 'invalid-email',
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('Invalid email address format');
@@ -467,12 +467,12 @@ describe('CDPClient', () => {
 
         it('should raise validation error when reply_to email has invalid format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendEmail(createEmailRequest({ 
-                to: 'test@example.com', 
-                identifiers: { id: 'user-123' }, 
+            await expect(client.sendEmail(createEmailRequest({
+                to: 'test@example.com',
+                identifiers: { id: 'user-123' },
                 reply_to: 'invalid-email',
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('Invalid email address format');
@@ -481,12 +481,12 @@ describe('CDPClient', () => {
 
         it('should raise validation error when send_at is not a positive integer', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendEmail(createEmailRequest({ 
-                to: 'test@example.com', 
-                identifiers: { id: 'user-123' }, 
+            await expect(client.sendEmail(createEmailRequest({
+                to: 'test@example.com',
+                identifiers: { id: 'user-123' },
                 send_at: -1,
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('send_at must be a positive integer');
@@ -495,12 +495,12 @@ describe('CDPClient', () => {
 
         it('should raise validation error when headers is not valid JSON', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendEmail(createEmailRequest({ 
-                to: 'test@example.com', 
-                identifiers: { id: 'user-123' }, 
+            await expect(client.sendEmail(createEmailRequest({
+                to: 'test@example.com',
+                identifiers: { id: 'user-123' },
                 headers: 'invalid json' as any,
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('headers must be an object');
@@ -509,12 +509,12 @@ describe('CDPClient', () => {
 
         it('should raise validation error when body is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendEmail(createEmailRequest({ 
-                to: 'test@example.com', 
-                identifiers: { id: 'user-123' }, 
+            await expect(client.sendEmail(createEmailRequest({
+                to: 'test@example.com',
+                identifiers: { id: 'user-123' },
                 body: '',
                 transactional_message_id: 'TEST'
             }))).rejects.toThrow('body cannot be empty if provided');
@@ -523,11 +523,11 @@ describe('CDPClient', () => {
 
         it('should raise validation error for raw email without required fields', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendEmail(createEmailRequest({ 
-                to: 'test@example.com', 
+            await expect(client.sendEmail(createEmailRequest({
+                to: 'test@example.com',
                 identifiers: { id: 'user-123' }
                 // Missing body, subject, from for raw email - no transactional_message_id
             } as any))).rejects.toThrow('When not using a template: body is required when not using a template, subject is required when not using a template, from is required when not using a template');
@@ -536,7 +536,7 @@ describe('CDPClient', () => {
 
         it('should handle API errors gracefully', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 debug: true
             });
 
@@ -555,13 +555,13 @@ describe('CDPClient', () => {
                 subject: 'Test Email'
             });
 
-            await expect(client.sendEmail(emailRequest)).rejects.toThrow('API Error');
+            await expect(client.sendEmail(emailRequest)).rejects.toThrow('Invalid request');
         });
 
         it('should warn about unsupported fields', async () => {
             const mockWarn = jest.fn();
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 cdpLogger: {
                     debug: jest.fn(),
                     error: jest.fn(),
@@ -570,9 +570,9 @@ describe('CDPClient', () => {
             });
 
             // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({ 
-                status: 200, 
-                data: { messageId: 'email-123', status: 'sent' } 
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'email-123', status: 'sent' }
             });
 
             const emailRequest = createEmailRequest({
@@ -615,7 +615,7 @@ describe('CDPClient', () => {
         it('should not warn when no unsupported fields are used', async () => {
             const mockWarn = jest.fn();
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 cdpLogger: {
                     debug: jest.fn(),
                     error: jest.fn(),
@@ -624,9 +624,9 @@ describe('CDPClient', () => {
             });
 
             // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({ 
-                status: 200, 
-                data: { messageId: 'email-123', status: 'sent' } 
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'email-123', status: 'sent' }
             });
 
             const emailRequest = createEmailRequest({
@@ -646,7 +646,7 @@ describe('CDPClient', () => {
         it('should warn about attachments as unsupported field', async () => {
             const mockWarn = jest.fn();
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 cdpLogger: {
                     debug: jest.fn(),
                     error: jest.fn(),
@@ -655,9 +655,9 @@ describe('CDPClient', () => {
             });
 
             // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({ 
-                status: 200, 
-                data: { messageId: 'email-123', status: 'sent' } 
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'email-123', status: 'sent' }
             });
 
             const emailRequest = createEmailRequest({
@@ -684,13 +684,13 @@ describe('CDPClient', () => {
     describe('sendPush', () => {
         it('should send push notification data to OpenCDP with basic parameters', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({ 
-                status: 200, 
-                data: { messageId: 'push-123', status: 'sent' } 
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'push-123', status: 'sent' }
             });
 
             const pushRequest = {
@@ -716,13 +716,13 @@ describe('CDPClient', () => {
 
         it('should send push notification data to OpenCDP with full parameters', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({ 
-                status: 200, 
-                data: { messageId: 'push-456', status: 'sent' } 
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'push-456', status: 'sent' }
             });
 
             const pushRequest = {
@@ -762,13 +762,13 @@ describe('CDPClient', () => {
 
         it('should send push notification with email identifier', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({ 
-                status: 200, 
-                data: { messageId: 'push-789', status: 'sent' } 
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'push-789', status: 'sent' }
             });
 
             const pushRequest = {
@@ -794,33 +794,33 @@ describe('CDPClient', () => {
 
         it('should raise validation error when identifiers is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendPush({ 
-                transactional_message_id: 'TEST' 
+            await expect(client.sendPush({
+                transactional_message_id: 'TEST'
             } as any)).rejects.toThrow('identifiers is required');
             expect(mockAxiosInstance.post).not.toHaveBeenCalled();
         });
 
         it('should raise validation error when identifiers is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendPush({ 
+            await expect(client.sendPush({
                 transactional_message_id: 'TEST',
-                identifiers: {} 
+                identifiers: {}
             })).rejects.toThrow('identifiers must contain exactly one of: id, email, or cdp_id');
             expect(mockAxiosInstance.post).not.toHaveBeenCalled();
         });
 
         it('should raise validation error when identifiers has multiple values', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendPush({ 
+            await expect(client.sendPush({
                 transactional_message_id: 'TEST',
                 identifiers: { id: 'user-123', email: 'user@example.com' }
             })).rejects.toThrow('identifiers must contain exactly one of: id, email, or cdp_id');
@@ -829,10 +829,10 @@ describe('CDPClient', () => {
 
         it('should raise validation error when transactional_message_id is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendPush({ 
+            await expect(client.sendPush({
                 identifiers: { id: 'user-123' }
             } as any)).rejects.toThrow('transactional_message_id is required');
             expect(mockAxiosInstance.post).not.toHaveBeenCalled();
@@ -840,10 +840,10 @@ describe('CDPClient', () => {
 
         it('should raise validation error when transactional_message_id is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendPush({ 
+            await expect(client.sendPush({
                 identifiers: { id: 'user-123' },
                 transactional_message_id: ''
             })).rejects.toThrow('transactional_message_id is required');
@@ -852,10 +852,10 @@ describe('CDPClient', () => {
 
         it('should raise validation error when body is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
-            await expect(client.sendPush({ 
+            await expect(client.sendPush({
                 identifiers: { id: 'user-123' },
                 transactional_message_id: 'TEST',
                 body: ''
@@ -865,7 +865,7 @@ describe('CDPClient', () => {
 
         it('should handle API errors gracefully', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 debug: true
             });
 
@@ -883,14 +883,14 @@ describe('CDPClient', () => {
                 title: 'Test Push'
             };
 
-            await expect(client.sendPush(pushRequest)).rejects.toThrow('API Error');
+            await expect(client.sendPush(pushRequest)).rejects.toThrow('Invalid request');
         });
     });
 
     describe('sendSms', () => {
         it('should send template-based SMS successfully', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -925,7 +925,7 @@ describe('CDPClient', () => {
 
         it('should send template-based SMS with numeric transactional_message_id', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -958,7 +958,7 @@ describe('CDPClient', () => {
 
         it('should send template-based SMS with phone number override', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -995,7 +995,7 @@ describe('CDPClient', () => {
 
         it('should send raw SMS successfully with phone number', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1024,7 +1024,7 @@ describe('CDPClient', () => {
 
         it('should send raw SMS successfully without phone number (looked up from profile)', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1051,7 +1051,7 @@ describe('CDPClient', () => {
 
         it('should send SMS with email identifier', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1078,7 +1078,7 @@ describe('CDPClient', () => {
 
         it('should send SMS with cdp_id identifier', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1105,7 +1105,7 @@ describe('CDPClient', () => {
 
         it('should clean payload by removing undefined values', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1135,7 +1135,7 @@ describe('CDPClient', () => {
 
         it('should log warning when sendToCustomerIo is enabled', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
+                cdpApiKey: 'test-api-key', failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -1155,7 +1155,7 @@ describe('CDPClient', () => {
             };
 
             // Mock console.warn to capture the warning
-            const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+            const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
 
             await client.sendSms(smsRequest);
 
@@ -1312,7 +1312,7 @@ describe('CDPClient', () => {
 
         it('should accept valid phone numbers in E.164 format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1454,7 +1454,7 @@ describe('CDPClient', () => {
 
         it('should send template-based SMS with body override', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key'
+                cdpApiKey: 'test-api-key', failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({

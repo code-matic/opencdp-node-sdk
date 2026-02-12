@@ -274,3 +274,6 @@ This SDK is published to two npm packages:
 ## License
 
 MIT# opencdp-node-sdk
+
+
+npm view OpenCDP

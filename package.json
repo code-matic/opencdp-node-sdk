@@ -1,20 +1,21 @@
 {
-  "name": "@codematic.io/cdp-node",
+  "name": "@codematic/opencdp",
   "version": "5.0.13",
   "description": "Codematic OpenCDP Node.js SDK",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
-  "types": "./dist/esm/index.d.ts",
+  "types": "./dist/cjs/index.d.ts",
   "homepage": "https://docs.opencdp.io/",
   "exports": {
     ".": {
-      "import": "./dist/esm/index.js",
       "types": "./dist/esm/index.d.ts",
+      "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.test.*"
   ],
   "publishConfig": {
     "access": "public"
@@ -32,11 +33,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "publish:unscoped": "node publish.js unscoped",
-    "publish:scoped": "node publish.js scoped",
-    "publish:all": "node publish.js unscoped && node publish.js scoped"
+    "prepublishOnly": "npm run build && npm test",
+    "test": "jest"
   }
 }
+

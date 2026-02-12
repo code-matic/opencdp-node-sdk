@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from "axios";
+import { RegionEU, RegionUS, TrackClient } from "customerio-node";
 import pLimit from "p-limit";
-import { TrackClient, RegionUS, RegionEU } from "customerio-node";
 import { CDPConfig, Logger, SendEmailRequest, SendPushRequest, SendSmsRequest } from "./types";
 
 /**
@@ -101,11 +101,19 @@ function validateSendEmailRequest(request: SendEmailRequest): void {
   }
 
   if (message.bcc && message.bcc.length > 0) {
-    message.bcc.forEach(email => validateEmail(email));
+    if (Array.isArray(message.bcc)) {
+      message.bcc.forEach(email => validateEmail(email));
+    } else {
+      validateEmail(message.bcc);
+    }
   }
 
   if (message.cc && message.cc.length > 0) {
-    message.cc.forEach(email => validateEmail(email));
+    if (Array.isArray(message.cc)) {
+      message.cc.forEach(email => validateEmail(email));
+    } else {
+      validateEmail(message.cc);
+    }
   }
 
   if (message.reply_to) {
@@ -278,9 +286,9 @@ function validateSendSmsRequest(request: SendSmsRequest): void {
   }
 
   // Validate conditional requirement: body is required if no transactional_message_id
-  const hasTemplateId = request.transactional_message_id !== undefined && 
-                        request.transactional_message_id !== null &&
-                        request.transactional_message_id !== "";
+  const hasTemplateId = request.transactional_message_id !== undefined &&
+    request.transactional_message_id !== null &&
+    request.transactional_message_id !== "";
 
   if (!hasTemplateId && !request.body) {
     throw new Error("body is required when not using a template");
@@ -843,12 +851,12 @@ export class CDPClient {
       unsupportedFields.push("attachments");
     }
 
-    if (unsupportedFields.length > 0 && this.config.debug) {
+    if (unsupportedFields.length > 0) {
       this.logger.warn(
         `[CDP] Warning: The following fields are not yet supported by the backend and will be ignored: ${unsupportedFields.join(
           ", "
         )}. ` +
-          "These fields are included for future compatibility but have no effect on email delivery."
+        "These fields are included for future compatibility but have no effect on email delivery."
       );
     }
   }
@@ -966,8 +974,8 @@ export class CDPClient {
       // Convert transactional_message_id to string if it's a number (backend expects string)
       const transactionalMessageId =
         request.transactional_message_id !== undefined &&
-        request.transactional_message_id !== null &&
-        request.transactional_message_id !== ""
+          request.transactional_message_id !== null &&
+          request.transactional_message_id !== ""
           ? String(request.transactional_message_id)
           : undefined;
 
