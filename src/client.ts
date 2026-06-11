@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from "axios";
 import { RegionEU, RegionUS, TrackClient } from "customerio-node";
 import pLimit from "p-limit";
 import { CDPConfig, Logger, SendEmailRequest, SendPushRequest, SendSmsRequest } from "./types";
+import { resolveAllBaseUrls } from "./gateway_urls";
 
 /**
  * Validates that the identifier is not empty
@@ -347,11 +348,13 @@ export class CDPClient {
   private readonly logger: Logger;
   private limit: ReturnType<typeof pLimit>;
   private timeout: number;
+  private readonly baseUrls: string[];
   private readonly axiosInstance: AxiosInstance;
 
   constructor(private config: CDPConfig) {
     this.apiRoot =
-      config.cdpEndpoint || "https://api.opencdp.io/gateway/data-gateway";
+      config.cdpEndpoint || "https://api.opencdp.com/gateway/data-gateway";
+    this.baseUrls = resolveAllBaseUrls(this.apiRoot, config.cdpFallbackEndpoints);
     this.sendToCustomerIo = Boolean(
       config.sendToCustomerIo && config.customerIo
     );
@@ -445,7 +448,7 @@ export class CDPClient {
 
   async validateConnection(): Promise<void> {
     try {
-      const response = await this.axiosInstance.get("/v1/health/ping");
+      const response = await this.requestWithFailover("get", "/v1/health/ping");
 
       if (this.config.debug) {
         this.logger.debug(
@@ -479,6 +482,46 @@ export class CDPClient {
         return;
       }
     }
+  }
+
+
+  private async requestWithFailover<T = any>(
+    method: "get" | "post",
+    path: string,
+    data?: unknown
+  ): Promise<import("axios").AxiosResponse<T>> {
+    let lastError: unknown;
+    for (const baseUrl of this.baseUrls) {
+      try {
+        const config = { baseURL: baseUrl };
+        const response =
+          method === "get"
+            ? await this.axiosInstance.get<T>(path, config)
+            : await this.axiosInstance.post<T>(path, data, config);
+        if (response.status >= 200 && response.status < 300) {
+          return response;
+        }
+        lastError = new Error(`HTTP ${response.status}`);
+        if (this.config.debug) {
+          this.logger.debug(
+            `[CDP] Gateway ${baseUrl} returned ${response.status}, trying next host`
+          );
+        }
+      } catch (error) {
+        lastError = error;
+        if (this.config.debug) {
+          this.logger.debug(`[CDP] Gateway ${baseUrl} unreachable: ${String(error)}`);
+        }
+      }
+    }
+    throw lastError;
+  }
+
+  close(): void {
+    const httpAgent = (this.axiosInstance.defaults as any).httpAgent;
+    const httpsAgent = (this.axiosInstance.defaults as any).httpsAgent;
+    httpAgent?.destroy?.();
+    httpsAgent?.destroy?.();
   }
 
   private async limited<T>(fn: () => Promise<T>): Promise<T> {
@@ -527,7 +570,7 @@ export class CDPClient {
       }
 
       try {
-        await this.axiosInstance.post("/v1/persons/identify", {
+        await this.requestWithFailover('post', "/v1/persons/identify", {
           identifier,
           properties: normalizedProps,
         });
@@ -602,7 +645,7 @@ export class CDPClient {
           }
         }
 
-        await this.axiosInstance.post("/v1/persons/track", {
+        await this.requestWithFailover('post', "/v1/persons/track", {
           identifier,
           eventName: eventName,
           properties: normalizedProps,
@@ -674,7 +717,7 @@ export class CDPClient {
       }
 
       try {
-        await this.axiosInstance.post("/v1/persons/registerDevice", {
+        await this.requestWithFailover('post', "/v1/persons/registerDevice", {
           identifier,
           ...deviceRegistrationParameters,
         });
@@ -760,7 +803,7 @@ export class CDPClient {
       }
 
       try {
-        const response = await this.axiosInstance.post(
+        const response = await this.requestWithFailover('post', 
           "/v1/send/email",
           cleanPayload
         );
@@ -902,7 +945,7 @@ export class CDPClient {
       }
 
       try {
-        const response = await this.axiosInstance.post(
+        const response = await this.requestWithFailover('post', 
           "/v1/send/push",
           cleanPayload
         );
@@ -1000,7 +1043,7 @@ export class CDPClient {
       }
 
       try {
-        const response = await this.axiosInstance.post(
+        const response = await this.requestWithFailover('post', 
           "/v1/send/sms",
           cleanPayload
         );
