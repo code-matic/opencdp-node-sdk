@@ -11,6 +11,10 @@ export interface CDPConfig {
      */
     cdpEndpoint?: string;
     /**
+     * Fallback gateway base URLs when primary is unreachable or returns non-2xx.
+     */
+    cdpFallbackEndpoints?: string[];
+    /**
      * Logger for OpenCDP operations.
      * If not provided, defaults to console logging.
      */

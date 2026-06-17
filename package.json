@@ -34,7 +34,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json",
     "prepublishOnly": "npm run build && npm test",
-    "test": "jest"
+    "test": "jest",
+    "smoke": "npm run build && node smoke.cjs"
   }
 }
 

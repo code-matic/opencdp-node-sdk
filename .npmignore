@@ -1,0 +1,11 @@
+src/
+coverage/
+developer_documentation/
+node_modules/
+*.test.*
+jest.config.ts
+publish.js
+smoke.cjs
+DEPLOYMENT.md
+CONTRIBUTING.md
+.github/

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import axios from 'axios';
 import { TrackClient } from 'customerio-node';
 import { CDPClient } from './client';
+import { DEFAULT_PRIMARY_BASE_URL, resolveAllBaseUrls } from './gateway_urls';
 import { SendEmailRequest } from './types';
 
 // Helper function to create SendEmailRequest instances
@@ -40,6 +41,15 @@ jest.mock('https', () => ({
     Agent: jest.fn().mockImplementation(() => ({})),
 }));
 
+
+describe('gateway_urls', () => {
+    it('defaults to api.opencdp.io primary with two fallbacks', () => {
+        const urls = resolveAllBaseUrls();
+        expect(urls[0]).toBe(DEFAULT_PRIMARY_BASE_URL);
+        expect(urls).toHaveLength(3);
+    });
+});
+
 describe('CDPClient', () => {
     let mockedAxios: jest.Mocked<typeof axios>;
     let mockedTrackClient: jest.Mock;
@@ -57,7 +67,8 @@ describe('CDPClient', () => {
     describe('identify', () => {
         it('should send identify data to OpenCDP and Customer.io when sendToCmIo is enabled', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -78,6 +89,8 @@ describe('CDPClient', () => {
                     identifier: 'user-123',
                     properties: testProperties
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
 
             expect(mockedTrackClient).toHaveBeenCalledWith('site-id', 'cio-api-key', { region: undefined });
@@ -85,7 +98,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when id is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -104,7 +118,8 @@ describe('CDPClient', () => {
             mockedTrackClient.mockClear();
 
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 sendToCustomerIo: false,
                 customerIo: {
                     siteId: 'site-id',
@@ -123,6 +138,8 @@ describe('CDPClient', () => {
                     identifier: 'user-123',
                     properties: { name: 'Test User', email: 'test@example.com' }
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
 
             expect(mockedTrackClient).not.toHaveBeenCalled();
@@ -132,7 +149,8 @@ describe('CDPClient', () => {
     describe('track', () => {
         it('should send track data to OpenCDP and Customer.io when sendToCmIo is enabled', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -152,6 +170,8 @@ describe('CDPClient', () => {
                     eventName: 'purchase',
                     properties: { amount: 100, currency: 'USD' }
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
 
             expect(mockedTrackClient).toHaveBeenCalledWith('site-id', 'cio-api-key', { region: undefined });
@@ -159,7 +179,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when id is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -175,7 +196,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when event name is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -194,7 +216,8 @@ describe('CDPClient', () => {
     describe('registerDevice', () => {
         it('should send register device data to OpenCDP and CMIO when sendToCustomerIo is enabled', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -235,6 +258,8 @@ describe('CDPClient', () => {
                         key: 'value'
                     }
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(mockedTrackClient).toHaveBeenCalledWith('site-id', 'cio-api-key', { region: undefined });
         });
@@ -243,7 +268,8 @@ describe('CDPClient', () => {
     describe('sendEmail', () => {
         it('should send template-based email data to OpenCDP with basic parameters', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             // Mock the axios instance response
@@ -271,13 +297,16 @@ describe('CDPClient', () => {
                     subject: 'Test Email',
                     body: 'This is a test email'
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'email-123', status: 'sent' });
         });
 
         it('should send template-based email data to OpenCDP with full parameters', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             // Mock the axios instance response
@@ -323,13 +352,16 @@ describe('CDPClient', () => {
                     tracked: true,
                     disable_css_preprocessing: false
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'email-456', status: 'sent' });
         });
 
         it('should send raw email data to OpenCDP without template', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             // Mock the axios instance response
@@ -363,13 +395,16 @@ describe('CDPClient', () => {
                     reply_to: 'support@aellacredit.com',
                     preheader: 'Email preview text'
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'email-789', status: 'sent' });
         });
 
         it('should raise validation error when to email is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({ identifiers: { id: 'user-123' } } as any))).rejects.toThrow('to is required');
@@ -378,7 +413,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when identifiers is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(new SendEmailRequest({ to: 'test@example.com' } as any))).rejects.toThrow('identifiers is required');
@@ -387,7 +423,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when identifiers is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(new SendEmailRequest({
@@ -400,7 +437,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when identifiers has multiple values', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -413,7 +451,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when to email is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -426,7 +465,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when to email has invalid format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -439,7 +479,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when from email has invalid format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -453,7 +494,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when bcc email has invalid format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -467,7 +509,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when reply_to email has invalid format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -481,7 +524,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when send_at is not a positive integer', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -495,7 +539,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when headers is not valid JSON', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -509,7 +554,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when body is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -523,7 +569,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error for raw email without required fields', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendEmail(createEmailRequest({
@@ -536,7 +583,8 @@ describe('CDPClient', () => {
 
         it('should handle API errors gracefully', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 debug: true
             });
 
@@ -561,7 +609,8 @@ describe('CDPClient', () => {
         it('should warn about unsupported fields', async () => {
             const mockWarn = jest.fn();
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 cdpLogger: {
                     debug: jest.fn(),
                     error: jest.fn(),
@@ -615,7 +664,8 @@ describe('CDPClient', () => {
         it('should not warn when no unsupported fields are used', async () => {
             const mockWarn = jest.fn();
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 cdpLogger: {
                     debug: jest.fn(),
                     error: jest.fn(),
@@ -646,7 +696,8 @@ describe('CDPClient', () => {
         it('should warn about attachments as unsupported field', async () => {
             const mockWarn = jest.fn();
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 cdpLogger: {
                     debug: jest.fn(),
                     error: jest.fn(),
@@ -684,7 +735,8 @@ describe('CDPClient', () => {
     describe('sendPush', () => {
         it('should send push notification data to OpenCDP with basic parameters', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             // Mock the axios instance response
@@ -710,13 +762,16 @@ describe('CDPClient', () => {
                     title: 'Welcome!',
                     body: 'Thank you for joining us!'
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'push-123', status: 'sent' });
         });
 
         it('should send push notification data to OpenCDP with full parameters', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             // Mock the axios instance response
@@ -756,13 +811,16 @@ describe('CDPClient', () => {
                         ]
                     }
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'push-456', status: 'sent' });
         });
 
         it('should send push notification with email identifier', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             // Mock the axios instance response
@@ -788,13 +846,16 @@ describe('CDPClient', () => {
                     title: 'Special Offer!',
                     body: 'Get 20% off your next purchase'
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'push-789', status: 'sent' });
         });
 
         it('should raise validation error when identifiers is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendPush({
@@ -805,7 +866,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when identifiers is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendPush({
@@ -817,7 +879,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when identifiers has multiple values', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendPush({
@@ -829,7 +892,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when transactional_message_id is not provided', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendPush({
@@ -840,7 +904,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when transactional_message_id is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendPush({
@@ -852,7 +917,8 @@ describe('CDPClient', () => {
 
         it('should raise validation error when body is empty', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             await expect(client.sendPush({
@@ -865,7 +931,8 @@ describe('CDPClient', () => {
 
         it('should handle API errors gracefully', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 debug: true
             });
 
@@ -890,7 +957,8 @@ describe('CDPClient', () => {
     describe('sendSms', () => {
         it('should send template-based SMS successfully', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -919,13 +987,16 @@ describe('CDPClient', () => {
                         total: '$99.99'
                     }
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-123', status: 'sent' });
         });
 
         it('should send template-based SMS with numeric transactional_message_id', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -952,13 +1023,16 @@ describe('CDPClient', () => {
                         order_number: '12345'
                     }
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-456', status: 'sent' });
         });
 
         it('should send template-based SMS with phone number override', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -989,13 +1063,16 @@ describe('CDPClient', () => {
                         order_number: '12345'
                     }
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-789', status: 'sent' });
         });
 
         it('should send raw SMS successfully with phone number', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1018,13 +1095,16 @@ describe('CDPClient', () => {
                     to: '+1234567890',
                     body: 'Your verification code is 123456. Valid for 10 minutes.'
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-raw-1', status: 'sent' });
         });
 
         it('should send raw SMS successfully without phone number (looked up from profile)', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1045,13 +1125,16 @@ describe('CDPClient', () => {
                     identifiers: { id: 'user-123' },
                     body: 'Your verification code is 123456. Valid for 10 minutes.'
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-raw-2', status: 'sent' });
         });
 
         it('should send SMS with email identifier', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1072,13 +1155,16 @@ describe('CDPClient', () => {
                     identifiers: { email: 'user@example.com' },
                     transactional_message_id: 'WELCOME_SMS'
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-email', status: 'sent' });
         });
 
         it('should send SMS with cdp_id identifier', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1099,13 +1185,16 @@ describe('CDPClient', () => {
                     identifiers: { cdp_id: 'cdp-user-123' },
                     transactional_message_id: 'WELCOME_SMS'
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-cdp', status: 'sent' });
         });
 
         it('should clean payload by removing undefined values', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1130,12 +1219,15 @@ describe('CDPClient', () => {
                     identifiers: { id: 'user-123' },
                     transactional_message_id: 'TEST'
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
         });
 
         it('should log warning when sendToCustomerIo is enabled', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true,
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true,
                 sendToCustomerIo: true,
                 customerIo: {
                     siteId: 'site-id',
@@ -1168,6 +1260,7 @@ describe('CDPClient', () => {
         it('should raise validation error when identifiers is not provided', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1178,6 +1271,7 @@ describe('CDPClient', () => {
         it('should raise validation error when identifiers is empty', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1191,6 +1285,7 @@ describe('CDPClient', () => {
         it('should raise validation error when identifiers has multiple values', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1204,6 +1299,7 @@ describe('CDPClient', () => {
         it('should raise validation error when body is required but not provided (raw SMS)', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1216,6 +1312,7 @@ describe('CDPClient', () => {
         it('should raise validation error when body is empty string', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1229,6 +1326,7 @@ describe('CDPClient', () => {
         it('should raise validation error when to phone number has invalid format', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1243,6 +1341,7 @@ describe('CDPClient', () => {
         it('should raise validation error when to phone number has invalid format (formatted)', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1257,6 +1356,7 @@ describe('CDPClient', () => {
         it('should raise validation error when to phone number is empty', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1271,6 +1371,7 @@ describe('CDPClient', () => {
         it('should raise validation error when from phone number has invalid format', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1285,6 +1386,7 @@ describe('CDPClient', () => {
         it('should raise validation error when message_data is an array', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1299,6 +1401,7 @@ describe('CDPClient', () => {
         it('should raise validation error when message_data is a string', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1312,7 +1415,8 @@ describe('CDPClient', () => {
 
         it('should accept valid phone numbers in E.164 format', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1341,6 +1445,7 @@ describe('CDPClient', () => {
         it('should handle API errors gracefully', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1362,6 +1467,7 @@ describe('CDPClient', () => {
         it('should handle API errors gracefully when failOnException is false', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: false
             });
 
@@ -1384,6 +1490,7 @@ describe('CDPClient', () => {
         it('should handle API errors with proper error properties', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1415,6 +1522,7 @@ describe('CDPClient', () => {
         it('should handle validation errors when failOnException is false', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: false
             });
 
@@ -1429,6 +1537,7 @@ describe('CDPClient', () => {
         it('should handle empty transactional_message_id string as no template', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1442,6 +1551,7 @@ describe('CDPClient', () => {
         it('should handle null transactional_message_id as no template', async () => {
             const client = new CDPClient({
                 cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [],
                 failOnException: true
             });
 
@@ -1454,7 +1564,8 @@ describe('CDPClient', () => {
 
         it('should send template-based SMS with body override', async () => {
             const client = new CDPClient({
-                cdpApiKey: 'test-api-key', failOnException: true
+                cdpApiKey: 'test-api-key',
+            cdpFallbackEndpoints: [], failOnException: true
             });
 
             mockAxiosInstance.post.mockResolvedValue({
@@ -1483,6 +1594,8 @@ describe('CDPClient', () => {
                         appointment_date: '2025-11-02'
                     }
                 }
+            ,
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-override', status: 'sent' });
         });
