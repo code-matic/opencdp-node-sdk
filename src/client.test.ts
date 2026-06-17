@@ -43,7 +43,7 @@ jest.mock('https', () => ({
 
 
 describe('gateway_urls', () => {
-    it('defaults to api.opencdp.com primary with two fallbacks', () => {
+    it('defaults to api.opencdp.io primary with two fallbacks', () => {
         const urls = resolveAllBaseUrls();
         expect(urls[0]).toBe(DEFAULT_PRIMARY_BASE_URL);
         expect(urls).toHaveLength(3);
@@ -90,7 +90,7 @@ describe('CDPClient', () => {
                     properties: testProperties
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
 
             expect(mockedTrackClient).toHaveBeenCalledWith('site-id', 'cio-api-key', { region: undefined });
@@ -139,7 +139,7 @@ describe('CDPClient', () => {
                     properties: { name: 'Test User', email: 'test@example.com' }
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
 
             expect(mockedTrackClient).not.toHaveBeenCalled();
@@ -171,7 +171,7 @@ describe('CDPClient', () => {
                     properties: { amount: 100, currency: 'USD' }
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
 
             expect(mockedTrackClient).toHaveBeenCalledWith('site-id', 'cio-api-key', { region: undefined });
@@ -259,7 +259,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(mockedTrackClient).toHaveBeenCalledWith('site-id', 'cio-api-key', { region: undefined });
         });
@@ -298,7 +298,7 @@ describe('CDPClient', () => {
                     body: 'This is a test email'
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'email-123', status: 'sent' });
         });
@@ -353,7 +353,7 @@ describe('CDPClient', () => {
                     disable_css_preprocessing: false
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'email-456', status: 'sent' });
         });
@@ -396,7 +396,7 @@ describe('CDPClient', () => {
                     preheader: 'Email preview text'
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'email-789', status: 'sent' });
         });
@@ -763,7 +763,7 @@ describe('CDPClient', () => {
                     body: 'Thank you for joining us!'
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'push-123', status: 'sent' });
         });
@@ -812,7 +812,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'push-456', status: 'sent' });
         });
@@ -847,7 +847,7 @@ describe('CDPClient', () => {
                     body: 'Get 20% off your next purchase'
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'push-789', status: 'sent' });
         });
@@ -988,7 +988,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-123', status: 'sent' });
         });
@@ -1024,7 +1024,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-456', status: 'sent' });
         });
@@ -1064,7 +1064,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-789', status: 'sent' });
         });
@@ -1096,7 +1096,7 @@ describe('CDPClient', () => {
                     body: 'Your verification code is 123456. Valid for 10 minutes.'
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-raw-1', status: 'sent' });
         });
@@ -1126,7 +1126,7 @@ describe('CDPClient', () => {
                     body: 'Your verification code is 123456. Valid for 10 minutes.'
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-raw-2', status: 'sent' });
         });
@@ -1156,7 +1156,7 @@ describe('CDPClient', () => {
                     transactional_message_id: 'WELCOME_SMS'
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-email', status: 'sent' });
         });
@@ -1186,7 +1186,7 @@ describe('CDPClient', () => {
                     transactional_message_id: 'WELCOME_SMS'
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-cdp', status: 'sent' });
         });
@@ -1220,7 +1220,7 @@ describe('CDPClient', () => {
                     transactional_message_id: 'TEST'
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
         });
 
@@ -1595,7 +1595,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.com/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
             );
             expect(result).toEqual({ messageId: 'sms-override', status: 'sent' });
         });

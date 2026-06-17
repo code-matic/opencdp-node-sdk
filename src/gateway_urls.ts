@@ -1,9 +1,9 @@
 export const DEFAULT_PRIMARY_BASE_URL =
-  "https://api.opencdp.com/gateway/data-gateway";
+  "https://api.opencdp.io/gateway/data-gateway";
 
 export const DEFAULT_FALLBACK_BASE_URLS = [
+  "https://api.opencdp.com/gateway/data-gateway",
   "https://api.opencdp.xyz/gateway/data-gateway",
-  "https://api.opencdp.io/gateway/data-gateway",
 ];
 
 export function normalizeBaseUrl(url: string): string {

@@ -353,7 +353,7 @@ export class CDPClient {
 
   constructor(private config: CDPConfig) {
     this.apiRoot =
-      config.cdpEndpoint || "https://api.opencdp.com/gateway/data-gateway";
+      config.cdpEndpoint || "https://api.opencdp.io/gateway/data-gateway";
     this.baseUrls = resolveAllBaseUrls(this.apiRoot, config.cdpFallbackEndpoints);
     this.sendToCustomerIo = Boolean(
       config.sendToCustomerIo && config.customerIo
