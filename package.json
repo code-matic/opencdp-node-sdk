@@ -1,6 +1,6 @@
 {
   "name": "@codematic/opencdp",
-  "version": "5.0.13",
+  "version": "5.0.14",
   "description": "Codematic OpenCDP Node.js SDK",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
