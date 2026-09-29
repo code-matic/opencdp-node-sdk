@@ -45,8 +45,11 @@ jest.mock('https', () => ({
 describe('gateway_urls', () => {
     it('defaults to api.opencdp.io primary with two fallbacks', () => {
         const urls = resolveAllBaseUrls();
-        expect(urls[0]).toBe(DEFAULT_PRIMARY_BASE_URL);
-        expect(urls).toHaveLength(3);
+        expect(urls).toEqual([
+            DEFAULT_PRIMARY_BASE_URL,
+            'https://api.open-cdp.com/gateway/data-gateway',
+            'https://api.open-cdp.xyz/gateway/data-gateway',
+        ]);
     });
 });
 

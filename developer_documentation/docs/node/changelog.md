@@ -6,7 +6,12 @@ sidebar_position: 7
 
 All notable changes to the OpenCDP Node.js SDK.
 
-## [5.0.9] - Current
+## [5.0.14] - 2026-09-29
+
+### Changed
+- Default gateway fallback hosts updated from `api.opencdp.com` / `api.opencdp.xyz` to `api.open-cdp.com` / `api.open-cdp.xyz` (primary remains `api.opencdp.io`)
+
+## [5.0.9]
 
 ### Features
 - Full TypeScript support with type definitions
