@@ -290,10 +290,10 @@ function validateSendPushRequest(request: SendPushRequest): void {
 }
 
 // Cloudflare (in front of the primary host) reports these when it never sent the request to the
-// gateway: 521 refused, 522 connect timeout, 523 unreachable, 525/526 TLS failure. Generic 502/503
+// gateway: 521 refused, 523 unreachable, 525/526 TLS failure. Generic 502/503
 // are excluded because a proxy can return them after the gateway has already queued the message,
-// and 524 because Cloudflare connected and waited for a response.
-const SEND_RETRYABLE_STATUSES = [521, 522, 523, 525, 526];
+// and 522/524 because Cloudflare may already have sent the request when it timed out.
+const SEND_RETRYABLE_STATUSES = [521, 523, 525, 526];
 
 // Errors raised before the request reached the server. Timeouts and ECONNRESET are excluded
 // because the request may already have been accepted.
@@ -652,8 +652,8 @@ export class CDPClient {
 
   /**
    * @param sendSafe Message sends are not idempotent, so in this mode we only move to the next
-   * host when the current one provably never processed the request. Retrying after a timeout or
-   * a 4xx/500/504 could deliver the same message twice.
+   * host when the current one provably never processed the request. Retrying after a timeout,
+   * a redirect, or a 4xx/5xx other than SEND_RETRYABLE_STATUSES could deliver the same message twice.
    */
   private async requestWithFailover<T = any>(
     method: "get" | "post",
@@ -664,7 +664,9 @@ export class CDPClient {
     let lastError: unknown;
     for (const baseUrl of this.baseUrls) {
       try {
-        const config = { baseURL: baseUrl };
+        // Sends never follow redirects: a failed connection to a redirect target would look like the
+        // original host was never reached, and failover would deliver the message twice.
+        const config = sendSafe ? { baseURL: baseUrl, maxRedirects: 0 } : { baseURL: baseUrl };
         const response =
           method === "get"
             ? await this.axiosInstance.get<T>(path, config)

@@ -301,7 +301,7 @@ describe('CDPClient', () => {
                     body: 'This is a test email'
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'email-123', status: 'sent' });
         });
@@ -356,7 +356,7 @@ describe('CDPClient', () => {
                     disable_css_preprocessing: false
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'email-456', status: 'sent' });
         });
@@ -399,7 +399,7 @@ describe('CDPClient', () => {
                     preheader: 'Email preview text'
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'email-789', status: 'sent' });
         });
@@ -905,7 +905,7 @@ describe('CDPClient', () => {
                     body: 'Thank you for joining us!'
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'push-123', status: 'sent' });
         });
@@ -954,7 +954,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'push-456', status: 'sent' });
         });
@@ -989,7 +989,7 @@ describe('CDPClient', () => {
                     body: 'Get 20% off your next purchase'
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'push-789', status: 'sent' });
         });
@@ -1130,7 +1130,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'sms-123', status: 'sent' });
         });
@@ -1166,7 +1166,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'sms-456', status: 'sent' });
         });
@@ -1206,7 +1206,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'sms-789', status: 'sent' });
         });
@@ -1238,7 +1238,7 @@ describe('CDPClient', () => {
                     body: 'Your verification code is 123456. Valid for 10 minutes.'
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'sms-raw-1', status: 'sent' });
         });
@@ -1268,7 +1268,7 @@ describe('CDPClient', () => {
                     body: 'Your verification code is 123456. Valid for 10 minutes.'
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'sms-raw-2', status: 'sent' });
         });
@@ -1298,7 +1298,7 @@ describe('CDPClient', () => {
                     transactional_message_id: 'WELCOME_SMS'
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'sms-email', status: 'sent' });
         });
@@ -1328,7 +1328,7 @@ describe('CDPClient', () => {
                     transactional_message_id: 'WELCOME_SMS'
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'sms-cdp', status: 'sent' });
         });
@@ -1362,7 +1362,7 @@ describe('CDPClient', () => {
                     transactional_message_id: 'TEST'
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
         });
 
@@ -1737,7 +1737,7 @@ describe('CDPClient', () => {
                     }
                 }
             ,
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'sms-override', status: 'sent' });
         });
@@ -1777,7 +1777,7 @@ describe('CDPClient', () => {
                         total: '$99.99'
                     }
                 },
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'wa-123', status: 'sent' });
         });
@@ -1813,7 +1813,7 @@ describe('CDPClient', () => {
                         body: { '1': 'Jane' }
                     }
                 },
-                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway', maxRedirects: 0 }
             );
             expect(result).toEqual({ messageId: 'wa-456', status: 'sent' });
         });
@@ -1961,7 +1961,7 @@ describe('CDPClient', () => {
             expect(mockAxiosInstance.post).toHaveBeenCalledTimes(2);
         });
 
-        it.each([521, 522, 523, 525, 526])(
+        it.each([521, 523, 525, 526])(
             'should fail over on Cloudflare %i, which means the gateway never received the send',
             async (status) => {
                 const client = new CDPClient({ cdpApiKey: 'test-api-key', failOnException: true });
@@ -1977,7 +1977,7 @@ describe('CDPClient', () => {
             }
         );
 
-        it.each([500, 502, 503, 504, 520, 524])(
+        it.each([500, 502, 503, 504, 520, 522, 524])(
             'should not fail over on %i, because the gateway may already have queued the send',
             async (status) => {
                 const client = new CDPClient({ cdpApiKey: 'test-api-key', failOnException: true });
@@ -1991,6 +1991,23 @@ describe('CDPClient', () => {
                 expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
             }
         );
+
+        it('should not follow or fail over on a redirect', async () => {
+            const client = new CDPClient({ cdpApiKey: 'test-api-key', failOnException: true });
+            mockAxiosInstance.post.mockRejectedValueOnce(
+                Object.assign(new Error('HTTP 307'), { response: { status: 307, data: {} } })
+            );
+
+            await expect(
+                client.sendWhatsApp({ identifiers: { id: 'user-123' }, transactional_message_id: 'A' })
+            ).rejects.toMatchObject({ status: 307 });
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+            expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                '/v1/send/whatsapp',
+                expect.anything(),
+                expect.objectContaining({ maxRedirects: 0 })
+            );
+        });
 
         it('should not fail over when a non-throwing 503 response comes back', async () => {
             const client = new CDPClient({ cdpApiKey: 'test-api-key', failOnException: true });
