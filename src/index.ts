@@ -7,5 +7,6 @@ export {
     SendEmailRequest,
     SendPushRequest,
     SendSmsRequest,
+    SendWhatsAppRequest,
     Identifiers
 } from './types';

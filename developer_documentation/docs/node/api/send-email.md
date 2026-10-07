@@ -476,6 +476,7 @@ try {
 
 - [sendPush()](./send-push.md) - Send push notifications
 - [sendSms()](./send-sms.md) - Send SMS messages
+- [sendWhatsApp()](./send-whatsapp.md) - Send WhatsApp messages
 - [identify()](./identify.md) - Identify users
 - [Email Examples](../examples/email-templates.md)
 - [Error Handling Guide](../guides/error-handling.md)

@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import { RegionEU, RegionUS, TrackClient } from "customerio-node";
 import pLimit from "p-limit";
-import { CDPConfig, Logger, SendEmailRequest, SendPushRequest, SendSmsRequest } from "./types";
+import { CDPConfig, Logger, SendEmailRequest, SendPushRequest, SendSmsRequest, SendWhatsAppRequest } from "./types";
 import { resolveAllBaseUrls } from "./gateway_urls";
 
 /**
@@ -238,6 +238,22 @@ function validateSendPushRequest(request: SendPushRequest): void {
 /**
  * Validates phone number format (E.164 format)
  */
+// 502/503 come from the load balancer when it could not reach the gateway, so nothing was processed.
+// 504 is excluded: the gateway may have published the message before the proxy gave up.
+const SEND_RETRYABLE_STATUSES = [502, 503];
+
+// Errors raised before the request reached the server. Timeouts and ECONNRESET are excluded
+// because the request may already have been accepted.
+const SEND_RETRYABLE_ERROR_CODES = ["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "EHOSTUNREACH", "ENETUNREACH"];
+
+function isSafeToRetrySend(error: any): boolean {
+  const status = error?.response?.status;
+  if (status !== undefined) {
+    return SEND_RETRYABLE_STATUSES.includes(status);
+  }
+  return SEND_RETRYABLE_ERROR_CODES.includes(error?.code);
+}
+
 function validatePhoneNumber(phone: string): void {
   if (!phone || phone.trim() === "") {
     throw new Error("Phone number cannot be empty");
@@ -315,6 +331,100 @@ function validateSendSmsRequest(request: SendSmsRequest): void {
   }
 
   // Validate message_data is an object if provided
+  if (request.message_data !== undefined) {
+    if (
+      request.message_data === null ||
+      typeof request.message_data !== "object" ||
+      Array.isArray(request.message_data)
+    ) {
+      throw new Error("message_data must be an object");
+    }
+  }
+}
+
+/**
+ * Validates that the send WhatsApp request has required fields
+ */
+function validateSendWhatsAppRequest(request: SendWhatsAppRequest): void {
+  if (!request.identifiers) {
+    throw new Error("identifiers is required");
+  }
+
+  const hasId =
+    "id" in request.identifiers &&
+    request.identifiers.id !== undefined &&
+    request.identifiers.id !== null &&
+    request.identifiers.id !== "";
+  const hasEmail =
+    "email" in request.identifiers &&
+    request.identifiers.email !== undefined &&
+    request.identifiers.email !== null &&
+    request.identifiers.email !== "";
+  const hasCdpId =
+    "cdp_id" in request.identifiers &&
+    request.identifiers.cdp_id !== undefined &&
+    request.identifiers.cdp_id !== null &&
+    request.identifiers.cdp_id !== "";
+
+  if (!hasId && !hasEmail && !hasCdpId) {
+    throw new Error(
+      "identifiers must contain exactly one of: id, email, or cdp_id"
+    );
+  }
+
+  if ((hasId ? 1 : 0) + (hasEmail ? 1 : 0) + (hasCdpId ? 1 : 0) > 1) {
+    throw new Error(
+      "identifiers must contain exactly one of: id, email, or cdp_id"
+    );
+  }
+
+  if (
+    request.transactional_message_id === undefined ||
+    request.transactional_message_id === null ||
+    request.transactional_message_id === ""
+  ) {
+    throw new Error("transactional_message_id is required");
+  }
+
+  if (request.to) {
+    validatePhoneNumber(request.to);
+  }
+
+  if (request.template_variables !== undefined) {
+    if (
+      request.template_variables === null ||
+      typeof request.template_variables !== "object" ||
+      Array.isArray(request.template_variables)
+    ) {
+      throw new Error("template_variables must be an object");
+    }
+
+    const allowedKeys = ["header", "body", "button"];
+    for (const key of Object.keys(request.template_variables)) {
+      if (!allowedKeys.includes(key)) {
+        throw new Error(
+          "template_variables may only contain header, body, and button"
+        );
+      }
+      const value = request.template_variables[key as "header" | "body" | "button"];
+      if (
+        value !== undefined &&
+        (value === null || typeof value !== "object" || Array.isArray(value))
+      ) {
+        throw new Error(`template_variables.${key} must be an object`);
+      }
+      // The gateway sends WhatsApp parameters by position and drops non-numeric button keys,
+      // so slot names must be the template's positional numbers.
+      for (const slot of Object.keys(value || {})) {
+        if (!/^[1-9]\d*$/.test(slot)) {
+          throw new Error(
+            `template_variables.${key} keys must be positional slot numbers ("1", "2", ...), got "${slot}"`
+          );
+        }
+      }
+    }
+  }
+
   if (request.message_data !== undefined) {
     if (
       request.message_data === null ||
@@ -484,11 +594,16 @@ export class CDPClient {
     }
   }
 
-
+  /**
+   * @param sendSafe Message sends are not idempotent, so in this mode we only move to the next
+   * host when the current one provably never processed the request. Retrying after a timeout or
+   * a 4xx/500/504 could deliver the same message twice.
+   */
   private async requestWithFailover<T = any>(
     method: "get" | "post",
     path: string,
-    data?: unknown
+    data?: unknown,
+    sendSafe = false
   ): Promise<import("axios").AxiosResponse<T>> {
     let lastError: unknown;
     for (const baseUrl of this.baseUrls) {
@@ -501,14 +616,23 @@ export class CDPClient {
         if (response.status >= 200 && response.status < 300) {
           return response;
         }
-        lastError = new Error(`HTTP ${response.status}`);
+        lastError = Object.assign(new Error(`HTTP ${response.status}`), { response });
+        if (sendSafe && !SEND_RETRYABLE_STATUSES.includes(response.status)) {
+          throw lastError;
+        }
         if (this.config.debug) {
           this.logger.debug(
             `[CDP] Gateway ${baseUrl} returned ${response.status}, trying next host`
           );
         }
       } catch (error) {
+        if (error === lastError) {
+          throw error;
+        }
         lastError = error;
+        if (sendSafe && !isSafeToRetrySend(error)) {
+          throw error;
+        }
         if (this.config.debug) {
           this.logger.debug(`[CDP] Gateway ${baseUrl} unreachable: ${String(error)}`);
         }
@@ -805,7 +929,8 @@ export class CDPClient {
       try {
         const response = await this.requestWithFailover('post', 
           "/v1/send/email",
-          cleanPayload
+          cleanPayload,
+          true
         );
 
         if (this.config.debug) {
@@ -947,7 +1072,8 @@ export class CDPClient {
       try {
         const response = await this.requestWithFailover('post', 
           "/v1/send/push",
-          cleanPayload
+          cleanPayload,
+          true
         );
 
         if (this.config.debug) {
@@ -1045,7 +1171,8 @@ export class CDPClient {
       try {
         const response = await this.requestWithFailover('post', 
           "/v1/send/sms",
-          cleanPayload
+          cleanPayload,
+          true
         );
 
         if (this.config.debug) {
@@ -1078,6 +1205,95 @@ export class CDPClient {
         cleanError.status = error?.response?.status || 400;
 
         // Remove technical details that clutter the error
+        delete cleanError.config;
+        delete cleanError.request;
+        delete cleanError.response;
+        delete cleanError.stack;
+
+        if (this.config.failOnException) {
+          throw cleanError;
+        }
+        return;
+      }
+    });
+  }
+
+  /**
+   * Send a WhatsApp message using the OpenCDP transactional WhatsApp service
+   * @param request The send WhatsApp request parameters
+   * @returns Promise that resolves when the WhatsApp message is sent
+   * @throws Error only when config.failOnException === true and validation or the request fails
+   */
+  async sendWhatsApp(request: SendWhatsAppRequest): Promise<any> {
+    return this.limited(async () => {
+      try {
+        validateSendWhatsAppRequest(request);
+      } catch (error) {
+        if (this.config.debug) {
+          this.logger.error("[CDP] Send WhatsApp validation error", { error });
+        }
+        if (this.config.failOnException) {
+          throw error;
+        }
+        return;
+      }
+
+      const transactionalMessageId =
+        request.transactional_message_id !== undefined &&
+          request.transactional_message_id !== null &&
+          request.transactional_message_id !== ""
+          ? String(request.transactional_message_id)
+          : undefined;
+
+      const whatsAppPayload = {
+        identifiers: request.identifiers,
+        transactional_message_id: transactionalMessageId,
+        to: request.to,
+        template_variables: request.template_variables,
+        message_data: request.message_data,
+      };
+
+      const cleanPayload = Object.fromEntries(
+        Object.entries(whatsAppPayload).filter(([_, value]) => value !== undefined)
+      );
+      if (this.sendToCustomerIo && this.customerIoClient && this.config.debug) {
+        this.logger.warn(
+          "[CDP] Warning: Transactional messaging WhatsApp will NOT be sent to Customer.io to avoid sending twice. To turn this warning off set `sendToCustomerIo` to false."
+        );
+      }
+
+      try {
+        const response = await this.requestWithFailover('post',
+          "/v1/send/whatsapp",
+          cleanPayload,
+          true
+        );
+
+        if (this.config.debug) {
+          this.logger.debug(`[CDP] WhatsApp sent successfully`);
+        }
+
+        return response.data;
+      } catch (error) {
+        const serverMessage = error?.response?.data?.message;
+        const errorSummary = {
+          message: error?.message,
+          status: error?.response?.status,
+          networkCode: error?.response ? undefined : error?.code,
+          data: serverMessage || "[truncated]",
+        };
+        if (this.config.debug) {
+          this.logger.error("[CDP] Send WhatsApp error:", { errorSummary });
+        }
+
+        const cleanError = error;
+        cleanError.message = serverMessage || errorSummary.message || "Failed to send WhatsApp";
+        cleanError.name = "CDPWhatsAppError";
+        cleanError.code = "WHATSAPP_SEND_FAILED";
+        cleanError.summary = errorSummary;
+        // Left undefined for network errors so callers can tell "never reached the gateway" from a 4xx.
+        cleanError.status = error?.response?.status;
+
         delete cleanError.config;
         delete cleanError.request;
         delete cleanError.response;

@@ -186,3 +186,22 @@ export interface SendSmsRequest {
     body?: string; // SMS message content (required if no transactional_message_id)
     message_data?: Record<string, any>;
 }
+
+export interface SendWhatsAppRequest {
+    // Required fields
+    identifiers: {
+        id?: string;
+        email?: string;
+        cdp_id?: string;
+    };
+    transactional_message_id: string | number;
+
+    // Optional fields
+    to?: string; // Phone number override
+    template_variables?: {
+        header?: Record<string, any>;
+        body?: Record<string, any>;
+        button?: Record<string, any>;
+    };
+    message_data?: Record<string, any>;
+}

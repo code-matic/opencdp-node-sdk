@@ -1603,4 +1603,263 @@ describe('CDPClient', () => {
             expect(result).toEqual({ messageId: 'sms-override', status: 'sent' });
         });
     });
+
+    describe('sendWhatsApp', () => {
+        it('should send template-based WhatsApp successfully', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                cdpFallbackEndpoints: [],
+                failOnException: true
+            });
+
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'wa-123', status: 'sent' }
+            });
+
+            const request = {
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 'ORDER_CONFIRMATION',
+                message_data: {
+                    order_number: '12345',
+                    total: '$99.99'
+                }
+            };
+
+            const result = await client.sendWhatsApp(request);
+
+            expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                '/v1/send/whatsapp',
+                {
+                    identifiers: { id: 'user-123' },
+                    transactional_message_id: 'ORDER_CONFIRMATION',
+                    message_data: {
+                        order_number: '12345',
+                        total: '$99.99'
+                    }
+                },
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+            );
+            expect(result).toEqual({ messageId: 'wa-123', status: 'sent' });
+        });
+
+        it('should send WhatsApp with numeric transactional_message_id', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                cdpFallbackEndpoints: [],
+                failOnException: true
+            });
+
+            mockAxiosInstance.post.mockResolvedValue({
+                status: 200,
+                data: { messageId: 'wa-456', status: 'sent' }
+            });
+
+            const result = await client.sendWhatsApp({
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 42,
+                to: '+14155551234',
+                template_variables: {
+                    body: { '1': 'Jane' }
+                }
+            });
+
+            expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                '/v1/send/whatsapp',
+                {
+                    identifiers: { id: 'user-123' },
+                    transactional_message_id: '42',
+                    to: '+14155551234',
+                    template_variables: {
+                        body: { '1': 'Jane' }
+                    }
+                },
+                { baseURL: 'https://api.opencdp.io/gateway/data-gateway' }
+            );
+            expect(result).toEqual({ messageId: 'wa-456', status: 'sent' });
+        });
+
+        it('should reject when identifiers is missing', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                cdpFallbackEndpoints: [],
+                failOnException: true
+            });
+
+            await expect(client.sendWhatsApp({} as any)).rejects.toThrow('identifiers is required');
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+        });
+
+        it('should reject when more than one identifier is provided', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                cdpFallbackEndpoints: [],
+                failOnException: true
+            });
+
+            await expect(client.sendWhatsApp({
+                identifiers: { id: 'user-123', email: 'user@example.com' },
+                transactional_message_id: 'ORDER_CONFIRMATION'
+            })).rejects.toThrow('identifiers must contain exactly one of: id, email, or cdp_id');
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+        });
+
+        it('should reject when transactional_message_id is missing', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                cdpFallbackEndpoints: [],
+                failOnException: true
+            });
+
+            await expect(client.sendWhatsApp({
+                identifiers: { id: 'user-123' }
+            } as any)).rejects.toThrow('transactional_message_id is required');
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+        });
+
+        it('should reject an invalid phone number', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                cdpFallbackEndpoints: [],
+                failOnException: true
+            });
+
+            await expect(client.sendWhatsApp({
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 'ORDER_CONFIRMATION',
+                to: 'not-a-phone'
+            })).rejects.toThrow('Phone number must be in international format (e.g., +1234567890)');
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+        });
+
+        it('should reject non-object template_variables', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                cdpFallbackEndpoints: [],
+                failOnException: true
+            });
+
+            await expect(client.sendWhatsApp({
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 'ORDER_CONFIRMATION',
+                template_variables: ['body'] as any
+            })).rejects.toThrow('template_variables must be an object');
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+        });
+
+        it('should reject named template slots', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                cdpFallbackEndpoints: [],
+                failOnException: true
+            });
+
+            await expect(client.sendWhatsApp({
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 'ORDER_CONFIRMATION',
+                template_variables: { body: { name: 'Jane' } }
+            })).rejects.toThrow('template_variables.body keys must be positional slot numbers');
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+        });
+
+        it('should surface the gateway message on a 4xx without trying a fallback host', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                failOnException: true
+            });
+            const axiosError = Object.assign(new Error('Request failed with status code 400'), {
+                response: { status: 400, data: { message: 'Transactional message with id X not found' } },
+            });
+            mockAxiosInstance.post.mockRejectedValueOnce(axiosError);
+
+            await expect(client.sendWhatsApp({
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 'X'
+            })).rejects.toMatchObject({
+                name: 'CDPWhatsAppError',
+                code: 'WHATSAPP_SEND_FAILED',
+                status: 400,
+                message: 'Transactional message with id X not found',
+            });
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+        });
+
+        it('should not retry on another host after a timeout, to avoid a duplicate send', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                failOnException: true
+            });
+            mockAxiosInstance.post.mockRejectedValueOnce(
+                Object.assign(new Error('timeout of 10000ms exceeded'), { code: 'ECONNABORTED' })
+            );
+
+            await expect(client.sendWhatsApp({
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 'ORDER_CONFIRMATION'
+            })).rejects.toMatchObject({
+                status: undefined,
+                message: 'timeout of 10000ms exceeded',
+                summary: expect.objectContaining({ networkCode: 'ECONNABORTED' }),
+            });
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+        });
+
+        it('should fail over when the primary host refuses the connection', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                failOnException: true
+            });
+            mockAxiosInstance.post
+                .mockRejectedValueOnce(Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }))
+                .mockResolvedValueOnce({ status: 200, data: { id: 'trx-1' } });
+
+            const result = await client.sendWhatsApp({
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 'ORDER_CONFIRMATION'
+            });
+
+            expect(result).toEqual({ id: 'trx-1' });
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(2);
+        });
+
+        it('should fail over on 503 but not on 500', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                failOnException: true
+            });
+            const httpError = (status: number) =>
+                Object.assign(new Error(`HTTP ${status}`), { response: { status, data: {} } });
+
+            mockAxiosInstance.post
+                .mockRejectedValueOnce(httpError(503))
+                .mockResolvedValueOnce({ status: 200, data: { id: 'trx-2' } });
+            await client.sendWhatsApp({ identifiers: { id: 'user-123' }, transactional_message_id: 'A' });
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(2);
+
+            mockAxiosInstance.post.mockClear();
+            mockAxiosInstance.post.mockRejectedValueOnce(httpError(500));
+            await expect(
+                client.sendWhatsApp({ identifiers: { id: 'user-123' }, transactional_message_id: 'A' })
+            ).rejects.toMatchObject({ status: 500 });
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+        });
+
+        it('should return undefined instead of throwing when failOnException is false', async () => {
+            const client = new CDPClient({
+                cdpApiKey: 'test-api-key',
+                cdpFallbackEndpoints: [],
+                failOnException: false
+            });
+            mockAxiosInstance.post.mockRejectedValueOnce(
+                Object.assign(new Error('HTTP 400'), { response: { status: 400, data: { message: 'bad' } } })
+            );
+
+            const result = await client.sendWhatsApp({
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 'ORDER_CONFIRMATION'
+            });
+
+            expect(result).toBeUndefined();
+        });
+    });
 });

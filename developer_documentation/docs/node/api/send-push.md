@@ -486,6 +486,7 @@ try {
 - [registerDevice()](./register-device.md) - Register devices for push
 - [sendEmail()](./send-email.md) - Send emails
 - [sendSms()](./send-sms.md) - Send SMS messages
+- [sendWhatsApp()](./send-whatsapp.md) - Send WhatsApp messages
 - [Push Examples](../examples/push-notifications.md)
 - [Error Handling Guide](../guides/error-handling.md)
 

@@ -25,6 +25,7 @@ Both packages contain identical functionality. Use the scoped version for new pr
 - Send customer identification and event data to Codematic CDP
 - Send transactional emails (transactional messaging and raw HTML)
 - Send SMS messages
+- Send WhatsApp messages
 - Send push notifications
 - Optional dual-write capability to Customer.io
 - TypeScript support 
@@ -74,6 +75,15 @@ await client.sendSms({
   identifiers: { id: 'user123' },
   transactional_message_id: 'WELCOME_SMS',
   body: 'Thank you for joining us!'
+});
+
+// Send WhatsApp
+await client.sendWhatsApp({
+  identifiers: { id: 'user123' },
+  transactional_message_id: 'WELCOME_WHATSAPP',
+  template_variables: {
+    body: { '1': 'Jane' }
+  }
 });
 ```
 
@@ -229,6 +239,22 @@ await client.sendSms({
   to: '+1234567890',
   from: '+1987654321',
   body: 'This is a raw SMS message'
+});
+```
+
+### Sending WhatsApp
+
+WhatsApp sends use a saved WhatsApp transactional. `transactional_message_id` is required.
+
+```typescript
+await client.sendWhatsApp({
+  identifiers: { id: 'user123' },
+  transactional_message_id: 'ORDER_CONFIRMATION',
+  to: '+14155551234',
+  template_variables: {
+    body: { '1': '12345' }
+  },
+  message_data: { name: 'John' }
 });
 ```
 

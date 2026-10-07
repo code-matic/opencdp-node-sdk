@@ -317,6 +317,7 @@ to avoid sending twice. To turn this warning off set `sendToCustomerIo` to false
 
 - [sendEmail()](./send-email.md) - Send emails
 - [sendPush()](./send-push.md) - Send push notifications
+- [sendWhatsApp()](./send-whatsapp.md) - Send WhatsApp messages
 - [identify()](./identify.md) - Identify users
 - [SMS Examples](../examples/sms-notifications.md)
 - [Error Handling Guide](../guides/error-handling.md)
