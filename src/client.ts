@@ -59,6 +59,10 @@ function validateEmail(email: string): void {
 // Mirrors the gateway's limits (backend integrations/email-attachments.ts) so bad input fails before a network call.
 const MAX_EMAIL_ATTACHMENTS = 5;
 const MAX_EMAIL_ATTACHMENTS_DECODED_BYTES = 2 * 1024 * 1024; // 2 MB
+const MAX_EMAIL_ATTACHMENTS_ENCODED_LENGTH = Math.ceil(MAX_EMAIL_ATTACHMENTS_DECODED_BYTES / 3) * 4;
+// Standard or url-safe alphabet, padding optional, "=" only at the end. Buffer.from(..., "base64")
+// silently skips invalid characters and anything after padding, so it cannot be used to validate.
+const BASE64_PATTERN = /^(?:[A-Za-z0-9+/_-]{4})*(?:[A-Za-z0-9+/_-]{2}(?:==)?|[A-Za-z0-9+/_-]{3}=?)?$/;
 
 /**
  * Validates an attachments map of filename -> base64 content
@@ -84,10 +88,17 @@ function validateAttachments(attachments: unknown): void {
     if (typeof content !== "string" || content.length === 0) {
       throw new Error(`attachment "${filename}" must be a non-empty base64 string`);
     }
-    const decodedBytes = Buffer.from(content.replace(/\s/g, ""), "base64").byteLength;
-    if (decodedBytes === 0) {
+    const normalized = content.replace(/\s/g, "");
+    // Check the length before the pattern so oversized content fails fast with the size error.
+    if (normalized.length > MAX_EMAIL_ATTACHMENTS_ENCODED_LENGTH) {
+      throw new Error(
+        `attachments decoded size exceeds ${MAX_EMAIL_ATTACHMENTS_DECODED_BYTES} bytes (2 MB)`
+      );
+    }
+    if (normalized.length === 0 || !BASE64_PATTERN.test(normalized)) {
       throw new Error(`attachment "${filename}" must be a valid base64 string`);
     }
+    const decodedBytes = Math.floor((normalized.replace(/=+$/, "").length * 3) / 4);
     totalDecodedBytes += decodedBytes;
     if (totalDecodedBytes > MAX_EMAIL_ATTACHMENTS_DECODED_BYTES) {
       throw new Error(
@@ -278,12 +289,11 @@ function validateSendPushRequest(request: SendPushRequest): void {
   }
 }
 
-/**
- * Validates phone number format (E.164 format)
- */
-// 502/503 come from the load balancer when it could not reach the gateway, so nothing was processed.
-// 504 is excluded: the gateway may have published the message before the proxy gave up.
-const SEND_RETRYABLE_STATUSES = [502, 503];
+// Cloudflare (in front of the primary host) reports these when it never sent the request to the
+// gateway: 521 refused, 522 connect timeout, 523 unreachable, 525/526 TLS failure. Generic 502/503
+// are excluded because a proxy can return them after the gateway has already queued the message,
+// and 524 because Cloudflare connected and waited for a response.
+const SEND_RETRYABLE_STATUSES = [521, 522, 523, 525, 526];
 
 // Errors raised before the request reached the server. Timeouts and ECONNRESET are excluded
 // because the request may already have been accepted.
@@ -297,6 +307,9 @@ function isSafeToRetrySend(error: any): boolean {
   return SEND_RETRYABLE_ERROR_CODES.includes(error?.code);
 }
 
+/**
+ * Validates phone number format (E.164 format)
+ */
 function validatePhoneNumber(phone: string): void {
   if (!phone || phone.trim() === "") {
     throw new Error("Phone number cannot be empty");

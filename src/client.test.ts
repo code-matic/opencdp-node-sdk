@@ -771,6 +771,47 @@ describe('CDPClient', () => {
                 ).rejects.toThrow('attachment "a.pdf" must be a valid base64 string');
             });
 
+            it.each([
+                ['an invalid character in the middle', 'aGV$sbG8='],
+                ['data after the padding', 'aGVsbG8=trailing-data'],
+                ['padding in the middle', 'aG=VsbG8'],
+                ['a dangling single character', 'aGVsb'],
+                ['only whitespace', ' \n\t '],
+            ])('should reject base64 with %s', async (_case, content) => {
+                await expect(
+                    createClient().sendEmail(templateRequest({ attachments: { 'a.txt': content } }))
+                ).rejects.toThrow('attachment "a.txt" must be a valid base64 string');
+                expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+            });
+
+            it('should accept unpadded, url-safe and line-wrapped base64', async () => {
+                const wrapped = Buffer.alloc(300, 7).toString('base64').replace(/(.{76})/g, '$1\r\n');
+
+                await createClient().sendEmail(
+                    templateRequest({
+                        attachments: { 'unpadded.txt': 'aGVsbG8', 'urlsafe.bin': '-_8=', 'wrapped.bin': wrapped },
+                    })
+                );
+
+                expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+            });
+
+            it('should accept exactly 2 MB decoded', async () => {
+                const exact = Buffer.alloc(2 * 1024 * 1024).toString('base64');
+
+                await createClient().sendEmail(templateRequest({ attachments: { 'exact.bin': exact } }));
+
+                expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+            });
+
+            it('should reject oversized content by length without decoding it', async () => {
+                const huge = 'A'.repeat(64 * 1024 * 1024);
+
+                await expect(
+                    createClient().sendEmail(templateRequest({ attachments: { 'huge.bin': huge } }))
+                ).rejects.toThrow('attachments decoded size exceeds 2097152 bytes (2 MB)');
+            });
+
             it('should reject attachments that are not an object', async () => {
                 await expect(
                     createClient().sendEmail(templateRequest({ attachments: ['a.pdf'] }))
@@ -1920,25 +1961,44 @@ describe('CDPClient', () => {
             expect(mockAxiosInstance.post).toHaveBeenCalledTimes(2);
         });
 
-        it('should fail over on 503 but not on 500', async () => {
-            const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
-                failOnException: true
-            });
-            const httpError = (status: number) =>
-                Object.assign(new Error(`HTTP ${status}`), { response: { status, data: {} } });
+        it.each([521, 522, 523, 525, 526])(
+            'should fail over on Cloudflare %i, which means the gateway never received the send',
+            async (status) => {
+                const client = new CDPClient({ cdpApiKey: 'test-api-key', failOnException: true });
+                mockAxiosInstance.post
+                    .mockRejectedValueOnce(
+                        Object.assign(new Error(`HTTP ${status}`), { response: { status, data: {} } })
+                    )
+                    .mockResolvedValueOnce({ status: 200, data: { id: 'trx-2' } });
 
-            mockAxiosInstance.post
-                .mockRejectedValueOnce(httpError(503))
-                .mockResolvedValueOnce({ status: 200, data: { id: 'trx-2' } });
-            await client.sendWhatsApp({ identifiers: { id: 'user-123' }, transactional_message_id: 'A' });
-            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(2);
+                await client.sendWhatsApp({ identifiers: { id: 'user-123' }, transactional_message_id: 'A' });
 
-            mockAxiosInstance.post.mockClear();
-            mockAxiosInstance.post.mockRejectedValueOnce(httpError(500));
+                expect(mockAxiosInstance.post).toHaveBeenCalledTimes(2);
+            }
+        );
+
+        it.each([500, 502, 503, 504, 520, 524])(
+            'should not fail over on %i, because the gateway may already have queued the send',
+            async (status) => {
+                const client = new CDPClient({ cdpApiKey: 'test-api-key', failOnException: true });
+                mockAxiosInstance.post.mockRejectedValueOnce(
+                    Object.assign(new Error(`HTTP ${status}`), { response: { status, data: {} } })
+                );
+
+                await expect(
+                    client.sendWhatsApp({ identifiers: { id: 'user-123' }, transactional_message_id: 'A' })
+                ).rejects.toMatchObject({ status });
+                expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+            }
+        );
+
+        it('should not fail over when a non-throwing 503 response comes back', async () => {
+            const client = new CDPClient({ cdpApiKey: 'test-api-key', failOnException: true });
+            mockAxiosInstance.post.mockResolvedValueOnce({ status: 503, data: {} });
+
             await expect(
                 client.sendWhatsApp({ identifiers: { id: 'user-123' }, transactional_message_id: 'A' })
-            ).rejects.toMatchObject({ status: 500 });
+            ).rejects.toBeDefined();
             expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
         });
 

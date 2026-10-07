@@ -39,7 +39,7 @@ Only when `failOnException` is `true`:
 
 ## Retries and failover
 
-Sends are not idempotent. The SDK moves to a fallback gateway host only when the primary provably did not process the request: connection refused, DNS failure, or HTTP 502/503. A timeout, a 4xx, a 500 or a 504 is returned to you without retrying, because the message may already have been queued. If you add your own retries, be aware they can deliver the message twice.
+Sends are not idempotent. The SDK moves to a fallback gateway host only when the primary provably did not process the request: connection refused, DNS failure, or a Cloudflare error that means the gateway was never reached (521, 522, 523, 525, 526). A timeout, a 4xx or any other 5xx (including 502, 503 and 504) is returned to you without retrying, because the message may already have been queued. If you add your own retries, be aware they can deliver the message twice.
 
 ## Template-Based WhatsApp
 
