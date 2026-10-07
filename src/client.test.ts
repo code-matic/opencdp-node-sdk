@@ -777,6 +777,7 @@ describe('CDPClient', () => {
                 ['padding in the middle', 'aG=VsbG8'],
                 ['a dangling single character', 'aGVsb'],
                 ['only whitespace', ' \n\t '],
+                ['mixed standard and url-safe alphabets', '+/-_'],
             ])('should reject base64 with %s', async (_case, content) => {
                 await expect(
                     createClient().sendEmail(templateRequest({ attachments: { 'a.txt': content } }))
@@ -789,7 +790,12 @@ describe('CDPClient', () => {
 
                 await createClient().sendEmail(
                     templateRequest({
-                        attachments: { 'unpadded.txt': 'aGVsbG8', 'urlsafe.bin': '-_8=', 'wrapped.bin': wrapped },
+                        attachments: {
+                            'unpadded.txt': 'aGVsbG8',
+                            'standard.bin': '+/8=',
+                            'urlsafe.bin': '-_8=',
+                            'wrapped.bin': wrapped,
+                        },
                     })
                 );
 

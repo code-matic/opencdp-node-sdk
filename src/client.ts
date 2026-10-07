@@ -60,7 +60,7 @@ function validateEmail(email: string): void {
 const MAX_EMAIL_ATTACHMENTS = 5;
 const MAX_EMAIL_ATTACHMENTS_DECODED_BYTES = 2 * 1024 * 1024; // 2 MB
 const MAX_EMAIL_ATTACHMENTS_ENCODED_LENGTH = Math.ceil(MAX_EMAIL_ATTACHMENTS_DECODED_BYTES / 3) * 4;
-// Standard or url-safe alphabet, padding optional, "=" only at the end. Buffer.from(..., "base64")
+// Standard or url-safe alphabet (not both), padding optional, "=" only at the end. Buffer.from(..., "base64")
 // silently skips invalid characters and anything after padding, so it cannot be used to validate.
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/_-]{4})*(?:[A-Za-z0-9+/_-]{2}(?:==)?|[A-Za-z0-9+/_-]{3}=?)?$/;
 
@@ -95,7 +95,9 @@ function validateAttachments(attachments: unknown): void {
         `attachments decoded size exceeds ${MAX_EMAIL_ATTACHMENTS_DECODED_BYTES} bytes (2 MB)`
       );
     }
-    if (normalized.length === 0 || !BASE64_PATTERN.test(normalized)) {
+    // Mixing "+/" with "-_" is valid in neither the standard nor the url-safe alphabet.
+    const mixesAlphabets = /[+/]/.test(normalized) && /[-_]/.test(normalized);
+    if (normalized.length === 0 || !BASE64_PATTERN.test(normalized) || mixesAlphabets) {
       throw new Error(`attachment "${filename}" must be a valid base64 string`);
     }
     const decodedBytes = Math.floor((normalized.replace(/=+$/, "").length * 3) / 4);
