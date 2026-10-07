@@ -254,8 +254,8 @@ class SendEmailRequest {
   
   attach(
     name: string, 
-    data: any, 
-    options?: { encode?: boolean }
+    data: Buffer | Uint8Array | string, 
+    options?: { encode?: boolean } // default true; false = string is already base64
   ): void;
 }
 ```
@@ -272,7 +272,7 @@ const request = new SendEmailRequest({
   message_data: { invoice_number: '12345' }
 });
 
-// Add attachment (note: not yet supported by backend)
+// Add attachment (max 5 files, 2 MB decoded in total)
 request.attach('invoice.pdf', pdfBuffer);
 
 await client.sendEmail(request);

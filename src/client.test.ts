@@ -696,42 +696,140 @@ describe('CDPClient', () => {
             expect(mockWarn).not.toHaveBeenCalled();
         });
 
-        it('should warn about attachments as unsupported field', async () => {
-            const mockWarn = jest.fn();
-            const client = new CDPClient({
-                cdpApiKey: 'test-api-key',
-            cdpFallbackEndpoints: [], failOnException: true,
-                cdpLogger: {
-                    debug: jest.fn(),
-                    error: jest.fn(),
-                    warn: mockWarn
-                }
+        describe('attachments', () => {
+            const pdfBase64 = Buffer.from('%PDF-1.4 test').toString('base64');
+
+            function createClient(warn = jest.fn()) {
+                return new CDPClient({
+                    cdpApiKey: 'test-api-key',
+                    cdpFallbackEndpoints: [],
+                    failOnException: true,
+                    cdpLogger: { debug: jest.fn(), error: jest.fn(), warn },
+                });
+            }
+
+            function templateRequest(extra: Record<string, any> = {}) {
+                return createEmailRequest({
+                    to: 'test@example.com',
+                    identifiers: { id: 'user-123' },
+                    transactional_message_id: 'TEST',
+                    ...extra,
+                });
+            }
+
+            beforeEach(() => {
+                mockAxiosInstance.post.mockResolvedValue({ status: 200, data: { status: 'queued' } });
             });
 
-            // Mock the axios instance response
-            mockAxiosInstance.post.mockResolvedValue({
-                status: 200,
-                data: { messageId: 'email-123', status: 'sent' }
+            it('should include attachments in the payload without warning', async () => {
+                const mockWarn = jest.fn();
+                const client = createClient(mockWarn);
+
+                await client.sendEmail(templateRequest({ attachments: { 'invoice.pdf': pdfBase64 } }));
+
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                    '/v1/send/email',
+                    expect.objectContaining({ attachments: { 'invoice.pdf': pdfBase64 } }),
+                    expect.anything()
+                );
+                expect(mockWarn).not.toHaveBeenCalled();
             });
 
-            const emailRequest = createEmailRequest({
+            it('should reject more than 5 attachments', async () => {
+                const attachments: Record<string, string> = {};
+                for (let i = 0; i < 6; i++) attachments[`file${i}.txt`] = pdfBase64;
+
+                await expect(createClient().sendEmail(templateRequest({ attachments }))).rejects.toThrow(
+                    'attachments may contain at most 5 files'
+                );
+                expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+            });
+
+            it('should reject attachments over 2 MB decoded', async () => {
+                const big = Buffer.alloc(2 * 1024 * 1024 + 1).toString('base64');
+
+                await expect(
+                    createClient().sendEmail(templateRequest({ attachments: { 'big.bin': big } }))
+                ).rejects.toThrow('attachments decoded size exceeds 2097152 bytes (2 MB)');
+            });
+
+            it.each(['../secret.pdf', 'dir/file.pdf', 'dir\\file.pdf'])('should reject filename %s', async (filename) => {
+                await expect(
+                    createClient().sendEmail(templateRequest({ attachments: { [filename]: pdfBase64 } }))
+                ).rejects.toThrow(`invalid attachment filename: ${filename}`);
+            });
+
+            it('should reject empty attachment content', async () => {
+                await expect(
+                    createClient().sendEmail(templateRequest({ attachments: { 'a.pdf': '' } }))
+                ).rejects.toThrow('attachment "a.pdf" must be a non-empty base64 string');
+            });
+
+            it('should reject content that is not base64', async () => {
+                await expect(
+                    createClient().sendEmail(templateRequest({ attachments: { 'a.pdf': '!!!' } }))
+                ).rejects.toThrow('attachment "a.pdf" must be a valid base64 string');
+            });
+
+            it('should reject attachments that are not an object', async () => {
+                await expect(
+                    createClient().sendEmail(templateRequest({ attachments: ['a.pdf'] }))
+                ).rejects.toThrow('attachments must be an object');
+            });
+
+            it('should not send and not throw on invalid attachments when failOnException is false', async () => {
+                const client = new CDPClient({ cdpApiKey: 'test-api-key', cdpFallbackEndpoints: [] });
+                const attachments: Record<string, string> = {};
+                for (let i = 0; i < 6; i++) attachments[`file${i}.txt`] = pdfBase64;
+
+                await expect(client.sendEmail(templateRequest({ attachments }))).resolves.toBeUndefined();
+                expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+            });
+        });
+    });
+
+    describe('SendEmailRequest.attach', () => {
+        function newRequest() {
+            return new SendEmailRequest({
                 to: 'test@example.com',
                 identifiers: { id: 'user-123' },
                 transactional_message_id: 'TEST',
-                subject: 'Test Email',
-                attachments: {
-                    'document.pdf': 'base64-encoded-content'
-                }
             });
+        }
 
-            await client.sendEmail(emailRequest);
+        it('should base64-encode a Buffer', () => {
+            const request = newRequest();
+            request.attach('invoice.pdf', Buffer.from('pdf-bytes'));
+            expect(request.message.attachments).toEqual({ 'invoice.pdf': Buffer.from('pdf-bytes').toString('base64') });
+        });
 
-            expect(mockWarn).toHaveBeenCalledWith(
-                expect.stringContaining('[CDP] Warning: The following fields are not yet supported by the backend and will be ignored:')
-            );
-            expect(mockWarn).toHaveBeenCalledWith(
-                expect.stringContaining('attachments')
-            );
+        it('should base64-encode a Uint8Array', () => {
+            const request = newRequest();
+            request.attach('data.bin', new Uint8Array([1, 2, 3]));
+            expect(request.message.attachments).toEqual({ 'data.bin': 'AQID' });
+        });
+
+        it('should base64-encode a string by default', () => {
+            const request = newRequest();
+            request.attach('notes.txt', 'hello');
+            expect(request.message.attachments).toEqual({ 'notes.txt': 'aGVsbG8=' });
+        });
+
+        it('should keep a string as-is when encode is false', () => {
+            const request = newRequest();
+            request.attach('notes.txt', 'aGVsbG8=', { encode: false });
+            expect(request.message.attachments).toEqual({ 'notes.txt': 'aGVsbG8=' });
+        });
+
+        it('should merge with attachments passed to the constructor', () => {
+            const request = new SendEmailRequest({
+                to: 'test@example.com',
+                identifiers: { id: 'user-123' },
+                transactional_message_id: 'TEST',
+                attachments: { 'a.txt': 'YQ==' },
+            });
+            request.attach('b.txt', 'b');
+            expect(request.message.attachments).toEqual({ 'a.txt': 'YQ==', 'b.txt': 'Yg==' });
         });
     });
 

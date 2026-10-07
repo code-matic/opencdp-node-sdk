@@ -142,6 +142,29 @@ await client.sendEmail({
 });
 ```
 
+#### Attachments
+
+Attach up to 5 files (2 MB decoded in total) with `SendEmailRequest.attach()`. Buffers are base64-encoded for you:
+
+```typescript
+import { readFileSync } from 'fs';
+import { SendEmailRequest } from '@codematic/opencdp';
+
+const request = new SendEmailRequest({
+  to: 'user@example.com',
+  identifiers: { id: 'user123' },
+  transactional_message_id: 'INVOICE_EMAIL',
+});
+
+request.attach('invoice.pdf', readFileSync('./invoice.pdf'));
+request.attach('notes.txt', 'Plain text content');            // strings are base64-encoded by default
+request.attach('report.csv', existingBase64, { encode: false }); // already base64, sent as-is
+
+await client.sendEmail(request);
+```
+
+You can also pass `attachments` directly as a map of filename to base64 content. The SDK validates attachments before sending: at most 5 files, at most 2 MB decoded in total, filenames without `/`, `\` or `..`, and non-empty base64 content. The content type is inferred from the file extension.
+
 #### Unsupported Fields Warning
 
 Some fields are accepted by the API but not yet processed by the backend. When you use these fields, the SDK will log a warning:
@@ -153,7 +176,6 @@ Some fields are accepted by the API but not yet processed by the backend. When y
 - `headers` - Custom email headers
 - `disable_message_retention` - Message retention control
 - `queue_draft` - Queue as draft
-- `attachments` - Email attachments
 
 ```typescript
 // This will log a warning about unsupported fields

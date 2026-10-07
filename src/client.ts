@@ -56,6 +56,47 @@ function validateEmail(email: string): void {
   }
 }
 
+// Mirrors the gateway's limits (backend integrations/email-attachments.ts) so bad input fails before a network call.
+const MAX_EMAIL_ATTACHMENTS = 5;
+const MAX_EMAIL_ATTACHMENTS_DECODED_BYTES = 2 * 1024 * 1024; // 2 MB
+
+/**
+ * Validates an attachments map of filename -> base64 content
+ */
+function validateAttachments(attachments: unknown): void {
+  if (attachments === undefined || attachments === null) {
+    return;
+  }
+  if (typeof attachments !== "object" || Array.isArray(attachments)) {
+    throw new Error("attachments must be an object");
+  }
+
+  const entries = Object.entries(attachments as Record<string, unknown>);
+  if (entries.length > MAX_EMAIL_ATTACHMENTS) {
+    throw new Error(`attachments may contain at most ${MAX_EMAIL_ATTACHMENTS} files`);
+  }
+
+  let totalDecodedBytes = 0;
+  for (const [filename, content] of entries) {
+    if (!filename || filename.includes("/") || filename.includes("\\") || filename.includes("..")) {
+      throw new Error(`invalid attachment filename: ${filename || "(empty)"}`);
+    }
+    if (typeof content !== "string" || content.length === 0) {
+      throw new Error(`attachment "${filename}" must be a non-empty base64 string`);
+    }
+    const decodedBytes = Buffer.from(content.replace(/\s/g, ""), "base64").byteLength;
+    if (decodedBytes === 0) {
+      throw new Error(`attachment "${filename}" must be a valid base64 string`);
+    }
+    totalDecodedBytes += decodedBytes;
+    if (totalDecodedBytes > MAX_EMAIL_ATTACHMENTS_DECODED_BYTES) {
+      throw new Error(
+        `attachments decoded size exceeds ${MAX_EMAIL_ATTACHMENTS_DECODED_BYTES} bytes (2 MB)`
+      );
+    }
+  }
+}
+
 /**
  * Validates that the send email request has required fields
  */
@@ -160,6 +201,8 @@ function validateSendEmailRequest(request: SendEmailRequest): void {
       throw new Error("headers must be an object");
     }
   }
+
+  validateAttachments(message.attachments);
 
   // Type guard to check if it's a template-based request
   const isTemplateRequest = message.transactional_message_id !== undefined;
@@ -913,6 +956,7 @@ export class CDPClient {
         subject: "subject" in message ? message.subject : undefined,
         from: "from" in message ? message.from : undefined,
         language: message.language,
+        attachments: message.attachments,
       };
 
       // Remove undefined values to keep the payload clean
@@ -1014,9 +1058,6 @@ export class CDPClient {
     }
     if (message.preheader !== undefined) {
       unsupportedFields.push("preheader");
-    }
-    if (message.attachments !== undefined) {
-      unsupportedFields.push("attachments");
     }
 
     if (unsupportedFields.length > 0) {

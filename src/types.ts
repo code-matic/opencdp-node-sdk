@@ -94,7 +94,7 @@ export type SendEmailRequestOptionalOptions = Partial<{
     send_at: number;
     disable_css_preprocessing: boolean;
     language: string;
-    // ⚠️  BACKEND NOT YET SUPPORTED - These fields are accepted but not processed by the backend
+    /** Map of filename to base64-encoded content. Max 5 files, 2 MB decoded in total. */
     attachments: Record<string, string>;
 }>;
 
@@ -146,13 +146,23 @@ export class SendEmailRequest {
         };
     }
     
-    attach(name: string, data: any, options?: {
+    /**
+     * Attach a file to the email. Buffers and Uint8Arrays are always base64-encoded.
+     * Strings are base64-encoded unless `encode` is false, in which case they must already be base64
+     * (same semantics as customerio-node's `attach`).
+     */
+    attach(name: string, data: Buffer | Uint8Array | string, options?: {
         encode?: boolean | undefined;
     }): void {
         if (!this.message.attachments) {
             this.message.attachments = {};
         }
-        this.message.attachments[name] = data;
+        const encode = options?.encode ?? true;
+        if (typeof data === 'string') {
+            this.message.attachments[name] = encode ? Buffer.from(data).toString('base64') : data;
+        } else {
+            this.message.attachments[name] = Buffer.from(data).toString('base64');
+        }
     }
 }
 
